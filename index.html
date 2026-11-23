@@ -37,23 +37,13 @@
     <section id="products" class="products-section">
         <div class="container">
             <h2 class="section-title">Featured Products</h2>
-            <div class="product-grid">
-                
-                <!-- Product Card 1: The Real Product -->
-                <div class="product-card">
-                    <!-- Updated image styling to show the full cover -->
-                    <img src="ai-freelancer-cover.png" alt="The AI-Empowered Freelancer Cover" style="width: 100%; height: 350px; object-fit: contain; background-color: #1a2545; padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                    <div class="product-info">
-                        <h3>The AI-Empowered Freelancer</h3>
-                        <p class="product-desc">Master AI tools to 10x your freelance productivity and income.</p>
-                        <div class="product-footer">
-                            <span class="price">$9.00</span>
-                            <a href="product-ai-freelancer.html" class="btn-primary btn-small">View Product</a>
-                        </div>
-                    </div>
-                </div>
-
+            
+            <!-- The product grid is now empty. JavaScript will fill it automatically! -->
+            <div class="product-grid" id="product-grid">
+                <!-- Loading spinner or message -->
+                <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1;">Loading products from Gumroad...</p>
             </div>
+
         </div>
     </section>
 
@@ -94,6 +84,67 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <!-- The JavaScript to fetch products from Supabase -->
+    <script>
+        // YOUR SUPABASE CREDENTIALS
+        const SUPABASE_URL = 'https://dtnkwtxbqakqckgydgje.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_NEW_PUBLISHABLE_KEY_HERE'; 
+        // ^^^ PASTE YOUR NEW KEY HERE (starts with sb_publishable_...)
+
+        async function loadProducts() {
+            const grid = document.getElementById('product-grid');
+            
+            try {
+                // Fetch published products from your database
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*&is_published=eq.true`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch products');
+
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    grid.innerHTML = '<p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1;">No products available yet.</p>';
+                    return;
+                }
+
+                // Loop through products and build HTML
+                grid.innerHTML = products.map(product => {
+                    // Format price from cents to dollars
+                    const price = (product.price_cents / 100).toFixed(2);
+                    
+                    // Clean up the description (remove HTML tags Gumroad sends)
+                    let cleanDesc = product.description.replace(/<[^>]*>?/gm, '');
+                    if (cleanDesc.length > 100) cleanDesc = cleanDesc.substring(0, 100) + '...';
+
+                    return `
+                        <div class="product-card">
+                            <img src="${product.cover_image_url}" alt="${product.title}" style="width: 100%; height: 350px; object-fit: contain; background-color: #1a2545; padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="product-info">
+                                <h3>${product.title}</h3>
+                                <p class="product-desc">${cleanDesc}</p>
+                                <div class="product-footer">
+                                    <span class="price">$${price}</span>
+                                    <!-- Note: Links to the product detail page -->
+                                    <a href="product-ai-freelancer.html" class="btn-primary btn-small">View Product</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error:', error);
+                grid.innerHTML = '<p style="text-align: center; color: red; grid-column: 1 / -1;">Error loading products. Please check the console.</p>';
+            }
+        }
+
+        // Run the function when the page loads
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
 </body>
 </html>
